@@ -1,0 +1,92 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Keyboard Bindings</title>
+    <link rel="stylesheet" href="/css/page_style.css" />
+</head>
+
+<body>
+    <h1>Keyboard bindings</h1>
+
+    <select id="keyboard-select">
+        <option value="">-- Select a keyboard --</option>
+    </select>
+
+    <div id="bindings"></div>
+
+    <script>
+        const select = document.getElementById("keyboard-select");
+        select.addEventListener("change", () => { loadBindings(select.value); });
+
+
+        const bindings_container = document.getElementById("bindings");
+        loadKeyboardNames();
+
+        async function loadKeyboardNames() {
+            const response = await fetch("/api/keyboards");
+            const keyboard_names = await response.json();
+
+            for (const name of keyboard_names) {
+                const option = document.createElement("option");
+
+                option.value = name;
+                option.textContent = name;
+
+                select.appendChild(option);
+            }
+        }
+
+        async function loadBindings(keyboard_name) {
+            bindings_container.innerHTML = "";
+
+            if (!keyboard_name) {
+                return;
+            }
+
+            const response = await fetch(`/api/keyboards/${encodeURIComponent(keyboard_name)}`);
+
+            if (!response.ok) {
+                bindings_container.textContent = "Could not load this keyboard.";
+                return;
+            }
+
+            const keyboard = await response.json();
+
+            function hidCodeToHex(hid_code) {
+                return `0x${hid_code.toString(16).toUpperCase().padStart(2, "0")}`;
+            }
+
+            for (const [base_key_name, base_hid_code] of Object.entries(keyboard.baseBindings)) {
+                const modified_hid_code = keyboard.modifiedBindings[base_key_name];
+                const modified_key_name = Object.keys(keyboard.baseBindings).find(
+                    key_name => keyboard.baseBindings[key_name] === modified_hid_code
+                ) ?? "Unknown key";
+
+                const mapping_element = document.createElement("div");
+                mapping_element.className = "binding-mapping";
+
+                mapping_element.innerHTML = `
+                    <div class="key">
+                        <div class="key-name">${base_key_name}</div>
+                        <div class="key-code">${hidCodeToHex(base_hid_code)}</div>
+                    </div>
+
+                    <div class="arrow" aria-label="maps to">→</div>
+
+                    <div class="key">
+                        <div class="key-name">${modified_key_name}</div>
+                        <div class="key-code">${hidCodeToHex(modified_hid_code)}</div>
+                    </div>
+                   `;
+
+                bindings_container.appendChild(mapping_element);
+            }
+        }
+
+
+
+    </script>
+</body>
+</html>
