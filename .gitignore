@@ -1,0 +1,11 @@
+# .NET build output
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio user-specific files and workspace state
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
