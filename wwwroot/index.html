@@ -14,13 +14,31 @@
         <option value="">-- Select a keyboard --</option>
     </select>
 
+    <div id="binding-controls" class="binding-controls" hidden>
+        <select id="binding-select">
+            <option value="">-- Select a binding --</option>
+        </select>
+
+        <input id="binding-name-input"
+               type="text"
+               placeholder="Binding name" />
+
+        <button id="save-binding-button" type="button">
+            Save current bindings
+        </button>
+    </div>
+
     <div id="bindings">
 
     </div>
 
     <script>
         const select = document.getElementById("keyboard-select");
-        select.addEventListener("change", () => { loadBindings(select.value); });
+        select.addEventListener("change", () => {
+            const hasSelectedKeyboard = Boolean(select.value);
+            document.getElementById("binding-controls").hidden = !hasSelectedKeyboard;
+            loadBindings(select.value);
+        });
 
 
         const bindings_container = document.getElementById("bindings");
@@ -66,18 +84,18 @@
                 mapping_element.className = "binding-mapping";
 
                 mapping_element.innerHTML = `
-                    <div class="key">
-                        <div class="key-name">${base_key_name}</div>
-                        <div class="key-code">${hidCodeToHex(base_hid_code)}</div>
-                    </div>
+                        <div class="key">
+                            <div class="key-name">${base_key_name}</div>
+                            <div class="key-code">${hidCodeToHex(base_hid_code)}</div>
+                        </div>
 
-                    <div class="arrow" aria-label="maps to">→</div>
+                        <div class="arrow" aria-label="maps to">→</div>
 
-                    <button type="button" class="key modified-key">
-                        <div class="key-name">${modified_key_name}</div>
-                        <div class="key-code">${hidCodeToHex(modified_hid_code)}</div>
-                    </button>
-                   `;
+                        <button type="button" class="key modified-key">
+                            <div class="key-name">${modified_key_name}</div>
+                            <div class="key-code">${hidCodeToHex(modified_hid_code)}</div>
+                        </button>
+                       `;
 
                 const modified_button = mapping_element.querySelector(".modified-key");
                 modified_button.addEventListener("click", () => {
@@ -112,9 +130,9 @@
                 keyboard.modifiedBindings[source_key_name] = target_hid_code;
 
                 button.innerHTML = `
-                    <div class="key-name">${target_key_name}</div>
-                    <div class="key-code"> ${hidCodeToHex(target_hid_code)}</div>
-                `;
+                        <div class="key-name">${target_key_name}</div>
+                        <div class="key-code"> ${hidCodeToHex(target_hid_code)}</div>
+                    `;
             }, { once: true });
         }
 

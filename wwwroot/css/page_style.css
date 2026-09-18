@@ -18,6 +18,26 @@ body {
     gap: 0.75rem;
 }
 
+.binding-controls {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+.binding-controls[hidden] {
+    display: none;
+}
+
+.binding-controls input {
+    padding: 0.4rem;
+}
+
+.binding-controls button {
+    padding: 0.4rem 0.75rem;
+    cursor: pointer;
+}
+
 .arrow {
     font-size: 2rem;
     font-weight: bold;
