@@ -14,7 +14,9 @@
         <option value="">-- Select a keyboard --</option>
     </select>
 
-    <div id="bindings"></div>
+    <div id="bindings">
+
+    </div>
 
     <script>
         const select = document.getElementById("keyboard-select");
@@ -54,10 +56,6 @@
 
             const keyboard = await response.json();
 
-            function hidCodeToHex(hid_code) {
-                return `0x${hid_code.toString(16).toUpperCase().padStart(2, "0")}`;
-            }
-
             for (const [base_key_name, base_hid_code] of Object.entries(keyboard.baseBindings)) {
                 const modified_hid_code = keyboard.modifiedBindings[base_key_name];
                 const modified_key_name = Object.keys(keyboard.baseBindings).find(
@@ -75,14 +73,84 @@
 
                     <div class="arrow" aria-label="maps to">→</div>
 
-                    <div class="key">
+                    <button type="button" class="key modified-key">
                         <div class="key-name">${modified_key_name}</div>
                         <div class="key-code">${hidCodeToHex(modified_hid_code)}</div>
-                    </div>
+                    </button>
                    `;
+
+                const modified_button = mapping_element.querySelector(".modified-key");
+                modified_button.addEventListener("click", () => {
+                    waitForKeyPress(
+                        keyboard,
+                        base_key_name,
+                        modified_button);
+                });
 
                 bindings_container.appendChild(mapping_element);
             }
+        }
+
+        function hidCodeToHex(hid_code) {
+            return `0x${hid_code.toString(16).toUpperCase().padStart(2, "0")}`;
+        }
+
+        function waitForKeyPress(keyboard, source_key_name, button) {
+            button.textContent = "Press a key...";
+
+            window.addEventListener("keydown", event => {
+                event.preventDefault();
+
+                const target_key_name = getKeyboardKeyName(event);
+
+                if (!target_key_name) {
+                    button.textContent = "Unsupported key";
+                    return;
+                }
+
+                const target_hid_code = keyboard.baseBindings[target_key_name];
+                keyboard.modifiedBindings[source_key_name] = target_hid_code;
+
+                button.innerHTML = `
+                    <div class="key-name">${target_key_name}</div>
+                    <div class="key-code"> ${hidCodeToHex(target_hid_code)}</div>
+                `;
+            }, { once: true });
+        }
+
+        // Retrive browser code and map it to the "Key name" of the HidKeyCodes.md
+        // Maybe there is a better way/place to do this, feels a bit too "manual"
+        function getKeyboardKeyName(event) {
+            if (event.code.startsWith("Key")) {
+                return event.code.substring(3);
+            }
+
+            if (event.code.startsWith("Digit")) {
+                return event.code.substring(5);
+            }
+
+            const specialKeys = {
+                Enter: "Enter",
+                Escape: "Escape",
+                Backspace: "Backspace",
+                Tab: "Tab",
+                Space: "Space",
+                CapsLock: "Caps Lock",
+
+                ArrowLeft: "Left Arrow",
+                ArrowRight: "Right Arrow",
+                ArrowUp: "Up Arrow",
+                ArrowDown: "Down Arrow",
+
+                ControlLeft: "Left Ctrl",
+                ControlRight: "Right Ctrl",
+                ShiftLeft: "Left Shift",
+                ShiftRight: "Right Shift",
+                AltLeft: "Left Alt",
+                AltRight: "Right Alt"
+            };
+
+            return specialKeys[event.code];
         }
 
 

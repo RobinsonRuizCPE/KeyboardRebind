@@ -39,3 +39,14 @@ body {
     color: #555;
     font-size: 0.85rem;
 }
+
+.modified-key {
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+}
+
+.modified-key:hover {
+    background: #e0e0e0;
+}
