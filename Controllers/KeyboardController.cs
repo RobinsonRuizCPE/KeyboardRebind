@@ -7,8 +7,7 @@ namespace KeyboardRebind.Controllers;
 [Route("api/keyboards")]
 public class KeyboardController : ControllerBase
 {
-    public KeyboardController(List<Keyboard> keyboard_list)
-    {
+    public KeyboardController(List<Keyboard> keyboard_list) {
         this.KeyboardsList = keyboard_list;
     }
 
