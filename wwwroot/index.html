@@ -14,14 +14,186 @@
         <option value="">-- Select a keyboard --</option>
     </select>
 
-    <div id="bindings"></div>
+    <div id="binding-controls" class="binding-controls" hidden>
+        <select id="binding-select">
+            <option value="">-- Select a binding --</option>
+        </select>
+
+        <input id="binding-name-input"
+               type="text"
+               placeholder="Binding name" />
+
+        <button id="save-new-profile-button" type="button">
+            Save new profile
+        </button>
+
+        <button id="update-profile-button" type="button" disabled>
+            Update selected profile
+        </button>
+
+        <button id="remove-binding-button" type="button" disabled>
+            Delete profile
+        </button>
+    </div>
+
+    <div id="bindings">
+
+    </div>
 
     <script>
+        // Stash all elements of the GUI
         const select = document.getElementById("keyboard-select");
-        select.addEventListener("change", () => { loadBindings(select.value); });
-
-
         const bindings_container = document.getElementById("bindings");
+        const binding_select = document.getElementById("binding-select");
+        const binding_name_input = document.getElementById("binding-name-input");
+        const save_new_profile_button = document.getElementById("save-new-profile-button");
+        const update_profile_button = document.getElementById("update-profile-button");
+        const remove_binding_button = document.getElementById("remove-binding-button");
+
+        // GUI Event bindings
+        select.addEventListener("change", async () => {
+            const keyboard_name = select.value;
+            const has_selected_keyboard = Boolean(keyboard_name);
+
+            document.getElementById("binding-controls").hidden = !has_selected_keyboard;
+
+            binding_select.innerHTML =
+                `<option value="">-- Select a binding --</option>`;
+
+            current_keyboard = null;
+            current_profile_id = null;
+            remove_binding_button.disabled = true;
+            update_profile_button.disabled = true;
+
+            if (!has_selected_keyboard) {
+                bindings_container.innerHTML = "";
+                return;
+            }
+
+            await loadBindings(keyboard_name);
+            await loadBindingProfiles(keyboard_name);
+        });
+
+        binding_select.addEventListener("change", async () => {
+            if (!binding_select.value) {
+                current_profile_id = null;
+                remove_binding_button.disabled = true;
+                update_profile_button.disabled = true;
+
+                await loadBindings(select.value);
+                return;
+            }
+
+            current_profile_id = Number(binding_select.value);
+            remove_binding_button.disabled = false;
+            update_profile_button.disabled = false;
+
+
+            await loadBindings(
+                select.value,
+                current_profile_id);
+        });
+
+        save_new_profile_button.addEventListener("click", async () => {
+            if (!current_keyboard) {
+                return;
+            }
+
+            const profile_name = binding_name_input.value.trim();
+
+            if (!profile_name) {
+                alert("Enter a new profile name.");
+                return;
+            }
+
+            const create_response = await fetch(
+                `/api/keyboards/${encodeURIComponent(select.value)}/profiles`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        profileName: profile_name
+                    })
+                });
+
+            if (!create_response.ok) {
+                alert("Could not create the profile. Its name may already exist.");
+                return;
+            }
+
+            const created_profile = await create_response.json();
+
+            const was_saved = await saveBindings(created_profile.id);
+
+            if (!was_saved) {
+                return;
+            }
+
+            current_profile_id = created_profile.id;
+
+            binding_name_input.value = "";
+
+            update_profile_button.disabled = false;
+            remove_binding_button.disabled = false;
+
+            await loadBindingProfiles(
+                select.value,
+                current_profile_id);
+
+            alert("New profile saved.");
+        });
+
+        update_profile_button.addEventListener("click", async () => {
+            if (!current_keyboard || !current_profile_id) {
+                return;
+            }
+
+            const was_saved = await saveBindings(current_profile_id);
+
+            if (was_saved) {
+                alert("Profile updated.");
+            }
+        });
+
+        remove_binding_button.addEventListener("click", async () => {
+            if (!current_profile_id) {
+                return;
+            }
+
+            const should_remove = confirm(
+                "Remove the current binding profile?");
+
+            if (!should_remove) {
+                return;
+            }
+
+            const response = await fetch(
+                `/api/keyboards/${encodeURIComponent(select.value)}` +
+                `/profiles/${current_profile_id}`,
+                {
+                    method: "DELETE"
+                });
+
+            if (!response.ok) {
+                alert("Could not remove the binding.");
+                return;
+            }
+
+            current_profile_id = null;
+
+            remove_binding_button.disabled = true;
+
+            // Reload the original key mappings.
+            await loadBindings(select.value);
+
+            // Remove the deleted profile from the combo box.
+            await loadBindingProfiles(select.value);
+        });
+        let current_keyboard = null;
+        let current_profile_id = null;
+
         loadKeyboardNames();
 
         async function loadKeyboardNames() {
@@ -38,25 +210,62 @@
             }
         }
 
-        async function loadBindings(keyboard_name) {
-            bindings_container.innerHTML = "";
+        async function loadBindingProfiles(keyboard_name, selected_profile_id = null) {
 
+            const response = await fetch(
+                `/api/keyboards/${encodeURIComponent(keyboard_name)}/profiles`);
+
+            if (!response.ok) {
+                return;
+            }
+
+            const profiles = await response.json();
+
+            binding_select.innerHTML =
+                `<option value="">-- Select a binding --</option>`;
+
+            for (const profile of profiles) {
+                const option = document.createElement("option");
+
+                option.value = profile.id;
+                option.textContent = profile.name;
+
+                binding_select.appendChild(option);
+            }
+
+            if (selected_profile_id) {
+                binding_select.value = String(selected_profile_id);
+            }
+        }
+
+        async function loadBindings(keyboard_name, profile_id = null) {
+            bindings_container.innerHTML = "";
             if (!keyboard_name) {
                 return;
             }
 
-            const response = await fetch(`/api/keyboards/${encodeURIComponent(keyboard_name)}`);
+            let response;
+            if (profile_id) {
+                response = await fetch(
+                    `/api/keyboards/${encodeURIComponent(keyboard_name)}` +
+                    `/profiles/${profile_id}`);
+            }
+            else {
+                response = await fetch(
+                    `/api/keyboards/${encodeURIComponent(keyboard_name)}/reset`,
+                    {
+                        method: "POST"
+                    });
+            }
 
             if (!response.ok) {
-                bindings_container.textContent = "Could not load this keyboard.";
+                bindings_container.textContent =
+                    "Could not load this keyboard.";
                 return;
             }
 
-            const keyboard = await response.json();
-
-            function hidCodeToHex(hid_code) {
-                return `0x${hid_code.toString(16).toUpperCase().padStart(2, "0")}`;
-            }
+            current_keyboard = await response.json();
+            const keyboard = current_keyboard;
 
             for (const [base_key_name, base_hid_code] of Object.entries(keyboard.baseBindings)) {
                 const modified_hid_code = keyboard.modifiedBindings[base_key_name];
@@ -68,21 +277,113 @@
                 mapping_element.className = "binding-mapping";
 
                 mapping_element.innerHTML = `
-                    <div class="key">
-                        <div class="key-name">${base_key_name}</div>
-                        <div class="key-code">${hidCodeToHex(base_hid_code)}</div>
-                    </div>
+                        <div class="key">
+                            <div class="key-name">${base_key_name}</div>
+                            <div class="key-code">${hidCodeToHex(base_hid_code)}</div>
+                        </div>
 
-                    <div class="arrow" aria-label="maps to">→</div>
+                        <div class="arrow" aria-label="maps to">→</div>
 
-                    <div class="key">
-                        <div class="key-name">${modified_key_name}</div>
-                        <div class="key-code">${hidCodeToHex(modified_hid_code)}</div>
-                    </div>
-                   `;
+                        <button type="button" class="key modified-key">
+                            <div class="key-name">${modified_key_name}</div>
+                            <div class="key-code">${hidCodeToHex(modified_hid_code)}</div>
+                        </button>
+                       `;
+
+                const modified_button = mapping_element.querySelector(".modified-key");
+                modified_button.addEventListener("click", () => {
+                    waitForKeyPress(
+                        keyboard,
+                        base_key_name,
+                        modified_button);
+                });
 
                 bindings_container.appendChild(mapping_element);
             }
+        }
+
+        async function saveBindings(profile_id) {
+            const response = await fetch(
+                `/api/keyboards/${encodeURIComponent(select.value)}` +
+                `/profiles/${profile_id}/bindings`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        modifiedBindings: current_keyboard.modifiedBindings
+                    })
+                });
+
+            if (!response.ok) {
+                alert("Could not save the binding.");
+                return false;
+            }
+
+            return true;
+        }
+
+        function hidCodeToHex(hid_code) {
+            return `0x${hid_code.toString(16).toUpperCase().padStart(2, "0")}`;
+        }
+
+        function waitForKeyPress(keyboard, source_key_name, button) {
+            button.textContent = "Press a key...";
+
+            window.addEventListener("keydown", event => {
+                event.preventDefault();
+
+                const target_key_name = getKeyboardKeyName(event);
+
+                if (!target_key_name) {
+                    button.textContent = "Unsupported key";
+                    return;
+                }
+
+                const target_hid_code = keyboard.baseBindings[target_key_name];
+                keyboard.modifiedBindings[source_key_name] = target_hid_code;
+
+                button.innerHTML = `
+                        <div class="key-name">${target_key_name}</div>
+                        <div class="key-code"> ${hidCodeToHex(target_hid_code)}</div>
+                    `;
+            }, { once: true });
+        }
+
+        // Retrive browser code and map it to the "Key name" of the HidKeyCodes.md
+        // Maybe there is a better way/place to do this, feels a bit too "manual"
+        function getKeyboardKeyName(event) {
+            if (event.code.startsWith("Key")) {
+                return event.code.substring(3);
+            }
+
+            if (event.code.startsWith("Digit")) {
+                return event.code.substring(5);
+            }
+
+            const specialKeys = {
+                Enter: "Enter",
+                Escape: "Escape",
+                Backspace: "Backspace",
+                Tab: "Tab",
+                Space: "Space",
+                CapsLock: "Caps Lock",
+
+                ArrowLeft: "Left Arrow",
+                ArrowRight: "Right Arrow",
+                ArrowUp: "Up Arrow",
+                ArrowDown: "Down Arrow",
+
+                ControlLeft: "Left Ctrl",
+                ControlRight: "Right Ctrl",
+                ShiftLeft: "Left Shift",
+                ShiftRight: "Right Shift",
+                AltLeft: "Left Alt",
+                AltRight: "Right Alt"
+            };
+
+            return specialKeys[event.code];
         }
 
 

@@ -11,11 +11,14 @@ namespace KeyboardRebind
             string hid_key_code_path = Path.Combine(keyboard_data_path, "HidKeyCodes.md");
 
             Name = keyboard_name;
+            DatabasePath = Path.Combine(keyboard_data_path, "KeyboardMappings.db");
 
             ParseBaseBinding(hid_key_code_path);
+            KeyboardBindingsDatabaseHelper.InitializeDatabase(DatabasePath);
         }
 
         public string Name { get; }
+        public string DatabasePath { get; }
         public Dictionary<string, byte> BaseBindings { get; } = [];
         public Dictionary<string, byte> ModifiedBindings { get; set; } = [];
 
@@ -45,7 +48,12 @@ namespace KeyboardRebind
                 BaseBindings.TryAdd(key_name, hid_code);
             }
 
-            ModifiedBindings = BaseBindings;
+            ResetModifiedBindings();
+        }
+
+        public void ResetModifiedBindings()
+        {
+            ModifiedBindings = new Dictionary<string, byte>(BaseBindings);
         }
     }
 }
