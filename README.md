@@ -110,18 +110,17 @@ PUT "/api/keyboards/{keyboardName}/profiles/{profileId}/bindings"
 
 The service validates source-key names and target HID codes against the keyboard's HID reference data. 
 
-Example request mapping `A` and `4`:
+Example request mapping `A` to `B` and `4` to `F5`:
 
 {
   "modifiedBindings": {
-    "A": {NewHIDCode},
-    "4": {NewHIDCode}
+    "A": "B",
+    "4": "F5"
   }
 }
 
 Test with a command prompt :
-curl.exe -i -X PUT "http://localhost:5098/api/keyboards/Apex%20Pro%20Gen%203/profiles/1/bindings" -H "Content-Type: application/json" -d "{\"modifiedBindings\":{\"A\":29,\"4\":31}}"
-
+curl.exe -i -X PUT "http://localhost:5098/api/keyboards/Apex%20Pro%20Gen%203/profiles/1/bindings" -H "Content-Type: application/json" -d "{\"modifiedBindings\":{\"A\":\"B\",\"4\":\"F5\"}}"
 Note : Entries whose target is the source key's default HID code are not stored as bindings.
 
 ## DELETE methods ##
@@ -136,5 +135,4 @@ This deletes a profile and it's modified bindings in the database
 
 - By adding a "profile" feature, some of the demands of the exercise are met in a different way. Since the exercice says that ""These are the general expected inputs, but the exact shape of them is up to you"", I allowed myself to change a bit the design of the service.
 - When a profile is deleted, the ID of the next profile is still an increment of the previous ones. If the user creates MAX(int) profiles, issues may appear.
-- Updating bindings format is not user-friendly in command line, since we ask for the {NewHIDCode}, it should ask for a key maybe, and resolve the HID code internaly.
 - The granualarity(?) of the methods feels a bit off. The service method were conceptualized, in parts, with the GUI in mind. This means some of the methods input/output are not really well designed for the service itself.

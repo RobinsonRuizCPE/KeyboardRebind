@@ -303,18 +303,33 @@
         }
 
         async function saveBindings(profile_id) {
+            const modifiedBindingsByKeyName = Object.fromEntries(
+                Object.entries(current_keyboard.modifiedBindings).map(
+                    ([source_key_name, target_hid_code]) => {
+                        const target_key_name = Object.keys(
+                            current_keyboard.baseBindings
+                        ).find(
+                            key_name =>
+                                current_keyboard.baseBindings[key_name] === target_hid_code
+                        );
+
+                        return [source_key_name, target_key_name];
+                    }
+                )
+            );
+
             const response = await fetch(
-                `/api/keyboards/${encodeURIComponent(select.value)}` +
-                `/profiles/${profile_id}/bindings`,
+                `/api/keyboards/${encodeURIComponent(select.value)}` + `/profiles/${profile_id}/bindings`,
                 {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        modifiedBindings: current_keyboard.modifiedBindings
+                        modifiedBindings: modifiedBindingsByKeyName
                     })
-                });
+                }
+            );
 
             if (!response.ok) {
                 alert("Could not save the binding.");
