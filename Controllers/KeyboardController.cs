@@ -90,24 +90,23 @@ public class KeyboardController : ControllerBase
             return BadRequest("Modified bindings are required.");
         }
 
-        foreach (var binding in request.ModifiedBindings) {
-            string source_key_name = binding.Key;
-            byte target_hid_code = binding.Value;
+        // Resolve the key_name of the request to the HID code
+        var resolved_bindings = new Dictionary<string, byte>();
+        foreach (var binding in request.ModifiedBindings)
+        {
+            var source_key_name = binding.Key;
+            var target_key_name = binding.Value;
 
             if (!found_keyboard.BaseBindings.ContainsKey(source_key_name))
-            {
-                return BadRequest(
-                    $"'{source_key_name}' is not a valid source key.");
-            }
+                return BadRequest($"'{source_key_name}' is not a valid source key.");
 
-            if (!found_keyboard.BaseBindings.ContainsValue(target_hid_code))
-            {
-                return BadRequest(
-                    $"0x{target_hid_code:X2} is not a valid target HID code.");
-            }
+            if (string.IsNullOrWhiteSpace(target_key_name) || !found_keyboard.BaseBindings.TryGetValue(target_key_name, out var targetHidCode))
+                return BadRequest($"'{target_key_name}' is not a valid target key.");
+
+            resolved_bindings[source_key_name] = targetHidCode;
         }
 
-        found_keyboard.ModifiedBindings = new Dictionary<string, byte>(request.ModifiedBindings);
+        found_keyboard.ModifiedBindings = resolved_bindings;
         KeyboardBindingsDatabaseHelper.SaveModifiedBindings(found_keyboard, profile_id);
         return NoContent();
     }
@@ -154,5 +153,5 @@ public sealed class CreateProfileRequest
 
 public sealed class SaveBindingsRequest
 {
-    public Dictionary<string, byte>? ModifiedBindings { get; set; }
+    public Dictionary<string, string>? ModifiedBindings { get; set; }
 }
