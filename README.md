@@ -29,11 +29,13 @@ The keyboard is now added to the service, the new database will be created autom
 
 ## GET Methods ##
 --- List available keyboards ---
+
 GET "/api/keyboards"
 
 This returns a list of keyboards names.
 
 --- Get keyboard base key data ---
+
 GET "/api/keyboards/{keyboardName}"
 
 This returns the following keyboard attributes :
@@ -47,6 +49,7 @@ This returns the following keyboard attributes :
 Note : Use `Apex%20Pro%20Gen%203` as the {keyboardName}  in the URL for the "Apex Pro Gen 3". 
 
 --- List profiles for a keyboard ---
+
 GET "/api/keyboards/{keyboardName}/profiles"
 
 This list all the profiles saved for this keyboard. A profile is composed of : 
@@ -56,6 +59,7 @@ This list all the profiles saved for this keyboard. A profile is composed of :
 }
 
 --- Load modified bindings for a profile ---
+
 GET "/api/keyboards/{keyboardName}/profiles/{profileId}"
 
 This returns the following keyboard attributes :
@@ -71,13 +75,14 @@ This returns the following keyboard attributes :
 The following POST Methods use JSON
 
 --- Create a mapping profile ---
+
 POST "/api/keyboards/{keyboardName}/profiles"
 
 {
   profileName: {profileName}
 }
 
-- Response:
+Response:
 
 {
   "id": {profileId},
@@ -89,6 +94,7 @@ curl.exe -X POST "http://localhost:5098/api/keyboards/Apex%20Pro%20Gen%203/profi
 
 
 --- Reset the in-memory mappings to defaults ---
+
 POST "/api/keyboards/{keyboardName}/reset"
 
 This reset the currently selected profile to the default one. This is used for GUI to handle the combobox.
@@ -99,6 +105,7 @@ curl.exe "http://localhost:5098/api/keyboards/Apex%20Pro%20Gen%203/profiles/{pro
 
 ## PUT methods ##
 --- Save profile mappings ---
+
 PUT "/api/keyboards/{keyboardName}/profiles/{profileId}/bindings"
 
 The service validates source-key names and target HID codes against the keyboard's HID reference data. 
@@ -120,6 +127,7 @@ Note : Entries whose target is the source key's default HID code are not stored 
 ## DELETE methods ##
 
 --- Delete a profile
+
 DELETE "/api/keyboards/{keyboardName}/profiles/{profileId}"
 
 This deletes a profile and it's modified bindings in the database
