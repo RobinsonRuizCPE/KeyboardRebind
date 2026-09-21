@@ -7,6 +7,11 @@ namespace KeyboardRebind
 
         public sealed record RemapProfile(int id, string name);
 
+        public sealed record RemapProfileWithBindings(
+            int id,
+            string name,
+            Dictionary<string, byte> modifiedBindings);
+
         private static SqliteConnection OpenConnection(string database_path)
         {
             var connection = new SqliteConnection($"Data Source={database_path}");
@@ -86,6 +91,48 @@ namespace KeyboardRebind
                 int profile_id = reader.GetInt32(0);
                 string profile_name = reader.GetString(1);
                 profiles.Add(new RemapProfile(profile_id, profile_name));
+            }
+
+            return profiles;
+        }
+
+        public static List<RemapProfileWithBindings> GetProfilesWithBindings(Keyboard keyboard)
+        {
+            using var connection = OpenConnection(keyboard.DatabasePath);
+            using var command = connection.CreateCommand();
+
+            command.CommandText = """
+            SELECT
+                RemapProfiles.Id,
+                RemapProfiles.Name,
+                KeyMappings.SourceKeyName,
+                KeyMappings.TargetHidCode
+            FROM RemapProfiles
+            LEFT JOIN KeyMappings ON KeyMappings.ProfileId = RemapProfiles.Id
+            ORDER BY RemapProfiles.Name, KeyMappings.SourceKeyName;
+            """;
+
+            using var reader = command.ExecuteReader();
+            var profiles = new List<RemapProfileWithBindings>();
+            RemapProfileWithBindings? current_profile = null;
+            int current_profile_id = -1;
+
+            while (reader.Read()) {
+                int profile_id = reader.GetInt32(0);
+                if (profile_id != current_profile_id) {
+                    current_profile = new RemapProfileWithBindings(
+                        profile_id,
+                        reader.GetString(1),
+                        new Dictionary<string, byte>());
+                    profiles.Add(current_profile);
+                    current_profile_id = profile_id;
+                }
+
+                if (!reader.IsDBNull(2)) {
+                    current_profile!.modifiedBindings.Add(
+                        reader.GetString(2),
+                        Convert.ToByte(reader.GetInt32(3)));
+                }
             }
 
             return profiles;
