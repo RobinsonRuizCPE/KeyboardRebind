@@ -58,6 +58,20 @@ This list all the profiles saved for this keyboard. A profile is composed of :
 	Id;
 }
 
+--- List all profiles with their remap bindings ---
+
+GET "/api/keyboards/{keyboardName}/profiles/bindings"
+
+This returns every profile for the keyboard along with its saved bindings in the database.
+It is not used by the UI but was made to better answer the problem of "Get all mappings".
+The returned JSON is a list of :
+
+{
+	Name;
+	Id;
+        ModifiedBindings;
+}
+
 --- Load modified bindings for a profile ---
 
 GET "/api/keyboards/{keyboardName}/profiles/{profileId}"

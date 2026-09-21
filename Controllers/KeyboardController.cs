@@ -47,6 +47,18 @@ public class KeyboardController : ControllerBase
         return Ok(profiles);
     }
 
+    [HttpGet("{keyboard_name}/profiles/bindings")]
+    public IActionResult GetProfilesWithBindings(string keyboard_name)
+    {
+        var found_keyboard = FindKeyboard(keyboard_name);
+        if (found_keyboard is null) {
+            return NotFound($"Keyboard '{keyboard_name}' was not found.");
+        }
+
+        var profiles = KeyboardBindingsDatabaseHelper.GetProfilesWithBindings(found_keyboard);
+        return Ok(profiles);
+    }
+
     [HttpGet("{keyboard_name}/profiles/{profile_id:int}")]
     public IActionResult LoadProfile(string keyboard_name, int profile_id)
     {
